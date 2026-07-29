@@ -30,6 +30,10 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm ci || npm install
+      # The web pixel keeps its own package.json - without this the bundler cannot resolve
+      # @shopify/web-pixels-extension and the deploy hangs instead of failing.
+      - name: Install extension dependencies
+        run: npm ci --prefix extensions/las-web-pixel || npm install --prefix extensions/las-web-pixel
       - name: Deploy app version
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
