@@ -14,6 +14,7 @@ on:
     paths:
       - "extensions/**"
       - "shopify.app.toml"
+  workflow_dispatch:
 
 concurrency:
   group: shopify-deploy
