@@ -1,0 +1,32 @@
+# AMPER LAS (QA) - the QA-environment twin of shopify.app.toml. Same extensions, same
+# scopes; every URL points at qa.live-assisted-sales.com and the credentials belong to
+# the separate "AMPER LAS (QA)" app (id 403816415233), so QA experiments can never touch
+# the production app. Deploy with: npx shopify app deploy --config qa
+
+client_id = "bab4e4013194deaea7f78441a829080c"
+name = "AMPER LAS (QA)"
+handle = "amper-las-qa"
+application_url = "https://qa.live-assisted-sales.com/integrations/shopify/install/"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,write_pixels,read_customers"
+
+[auth]
+redirect_urls = ["https://qa.live-assisted-sales.com/integrations/shopify/oauth/callback/"]
+
+[webhooks]
+api_version = "2025-07"
+
+[webhooks.privacy_compliance]
+customer_data_request_url = "https://qa.live-assisted-sales.com/api/integrations/shopify/webhooks/"
+customer_deletion_url = "https://qa.live-assisted-sales.com/api/integrations/shopify/webhooks/"
+shop_deletion_url = "https://qa.live-assisted-sales.com/api/integrations/shopify/webhooks/"
+
+[app_proxy]
+url = "https://qa.live-assisted-sales.com/api/shopify/proxy/"
+prefix = "apps"
+subpath = "las"
+
+[pos]
+embedded = false
