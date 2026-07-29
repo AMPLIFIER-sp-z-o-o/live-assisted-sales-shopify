@@ -30,7 +30,7 @@ scopes = "read_orders,write_pixels,read_customers,read_customer_events"
 redirect_urls = ["https://live-assisted-sales.com/integrations/shopify/oauth/callback/"]
 
 [webhooks]
-api_version = "2025-07"
+api_version = "2026-07"
 
 # The three mandatory GDPR topics are configured here (not via the API); business topics
 # (orders/create, app/uninstalled) are registered per shop by las-backend on connect.

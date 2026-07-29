@@ -4,7 +4,7 @@
 #
 # The pixel is activated per shop by las-backend on connect (webPixelCreate), which also
 # injects the settings values below - they are not merchant-editable.
-api_version = "2025-07"
+api_version = "2026-07"
 uid = "76b1d507-49b6-4390-8352-1d3d5195e252fdff2a34"
 
 [[extensions]]
