@@ -10,7 +10,7 @@ application_url = "https://qa.live-assisted-sales.com/integrations/shopify/insta
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,write_pixels,read_customers"
+scopes = "read_orders,write_pixels,read_customers,read_customer_events"
 
 [auth]
 redirect_urls = ["https://qa.live-assisted-sales.com/integrations/shopify/oauth/callback/"]
