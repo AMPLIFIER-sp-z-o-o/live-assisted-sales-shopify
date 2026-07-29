@@ -23,7 +23,10 @@ embedded = false
 scopes = "read_orders"
 
 [auth]
-redirect_urls = ["https://live-assisted-sales.com/integrations/shopify/oauth/callback/"]
+redirect_urls = [
+  "https://live-assisted-sales.com/integrations/shopify/oauth/callback/",
+  "https://qa.live-assisted-sales.com/integrations/shopify/oauth/callback/",
+]
 
 [webhooks]
 api_version = "2025-07"
