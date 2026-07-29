@@ -2,6 +2,7 @@
 # attribution tracker on the storefront. The merchant switches it on once in the theme
 # editor (App embeds panel); Shopify injects it on every page after that.
 api_version = "2025-07"
+uid = "6946d1e6-ab09-089c-9d32-81c04df216448ab20bab"
 
 [[extensions]]
 name = "AMPER Live Assisted Sales"

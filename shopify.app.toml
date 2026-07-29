@@ -10,7 +10,7 @@
 # (and mirror the same value in las-backend's SHOPIFY_PUBLIC_BASE_URL) - `shopify app dev`
 # can also manage these URLs for you automatically.
 
-client_id = "REPLACE_WITH_CLIENT_ID"
+client_id = "9e76195cb531053afedbc0b57927a218"
 name = "AMPER Live Assisted Sales"
 handle = "amper-live-assisted-sales"
 application_url = "https://live-assisted-sales.com/integrations/shopify/install/"
