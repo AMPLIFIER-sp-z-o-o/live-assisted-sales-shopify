@@ -35,4 +35,6 @@ jobs:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         # No ": " inside this unquoted scalar - YAML would read it as a mapping and the
         # whole workflow file becomes invalid (runs then fail with zero jobs).
-        run: npx shopify app deploy --force --message "ci ${{ github.sha }}"
+        # --allow-updates is required with an automation token: without it the CLI stops
+        # to ask about app-config changes and the job hangs until the runner times out.
+        run: npx shopify app deploy --force --allow-updates --message "ci ${{ github.sha }}"
