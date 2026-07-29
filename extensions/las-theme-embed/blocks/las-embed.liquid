@@ -88,8 +88,21 @@
     {%- if customer %}
     // Signed identity through the app proxy: Shopify appends logged_in_customer_id and a
     // signature server-side, las-backend answers with claims signed by the store key.
+    // Shopify does not forward proxy requests on password-protected storefronts (every
+    // development store is one), so a 404 here is expected in testing - the shopper simply
+    // stays anonymous. The warning spells that out instead of failing silently.
     var chatBoot = fetch('/apps/las/identity/', { credentials: 'same-origin' })
-      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (response) {
+        if (!response.ok) {
+          console.warn(
+            '[AMPER LAS] Chat identity unavailable (app proxy returned ' + response.status +
+            '). The shopper will chat anonymously. On password-protected storefronts Shopify ' +
+            'does not forward app proxy requests.'
+          );
+          return null;
+        }
+        return response.json();
+      })
       .then(function (data) {
         if (data && data.customer && data.customer.sig) {
           window.LAS_CUSTOMER = {
