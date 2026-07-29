@@ -1,0 +1,9 @@
+# Theme app extension: the app embed block that puts the LAS chat widget and the
+# attribution tracker on the storefront. The merchant switches it on once in the theme
+# editor (App embeds panel); Shopify injects it on every page after that.
+api_version = "2025-07"
+
+[[extensions]]
+name = "AMPER Live Assisted Sales"
+handle = "las-theme-embed"
+type = "theme"

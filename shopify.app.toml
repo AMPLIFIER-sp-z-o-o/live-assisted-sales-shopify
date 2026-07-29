@@ -1,0 +1,47 @@
+# AMPER Live Assisted Sales - Shopify app configuration.
+# The app "backend" is las-backend (Django); this project holds only the app config and
+# the storefront extensions, so `shopify app deploy` here never touches the server code.
+#
+# client_id comes from the company Partner account's Dev Dashboard (see the owner setup
+# instruction in the main repo). Replace the placeholder before the first deploy, or run
+# `shopify app config link` to have the CLI fill it in.
+#
+# In dev, replace https://live-assisted-sales.com with the tunnel host in front of :8001
+# (and mirror the same value in las-backend's SHOPIFY_PUBLIC_BASE_URL) - `shopify app dev`
+# can also manage these URLs for you automatically.
+
+client_id = "REPLACE_WITH_CLIENT_ID"
+name = "AMPER Live Assisted Sales"
+handle = "amper-live-assisted-sales"
+application_url = "https://live-assisted-sales.com/integrations/shopify/install/"
+# No embedded admin UI in phase 1: the app's console IS the LAS console, and install/
+# connect run as top-level redirects. Revisit (App Bridge + embedded = true) before an
+# App Store submission, where embedded admin is the expected experience.
+embedded = false
+
+[access_scopes]
+scopes = "read_orders"
+
+[auth]
+redirect_urls = ["https://live-assisted-sales.com/integrations/shopify/oauth/callback/"]
+
+[webhooks]
+api_version = "2025-07"
+
+# The three mandatory GDPR topics are configured here (not via the API); business topics
+# (orders/create, app/uninstalled) are registered per shop by las-backend on connect.
+[webhooks.privacy_compliance]
+customer_data_request_url = "https://live-assisted-sales.com/api/integrations/shopify/webhooks/"
+customer_deletion_url = "https://live-assisted-sales.com/api/integrations/shopify/webhooks/"
+shop_deletion_url = "https://live-assisted-sales.com/api/integrations/shopify/webhooks/"
+
+# Storefront calls /apps/las/... on the shop's own domain; Shopify proxies them to
+# las-backend with a verifiable signature and logged_in_customer_id. Used for the signed
+# chat identity (see las-backend apps/live/shopify_views.shopify_proxy_identity).
+[app_proxy]
+url = "https://live-assisted-sales.com/api/shopify/proxy/"
+prefix = "apps"
+subpath = "las"
+
+[pos]
+embedded = false

@@ -1,0 +1,34 @@
+# Web Pixel extension: browser-side funnel telemetry. Runs in Shopify's strict sandbox
+# on every storefront AND checkout page (where the theme embed cannot run), and maps
+# Shopify's standard analytics events onto the LAS GA4 taxonomy.
+#
+# The pixel is activated per shop by las-backend on connect (webPixelCreate), which also
+# injects the settings values below - they are not merchant-editable.
+api_version = "2025-07"
+
+[[extensions]]
+name = "las-web-pixel"
+handle = "las-web-pixel"
+type = "web_pixel_extension"
+runtime_context = "strict"
+
+[extensions.customer_privacy]
+analytics = true
+marketing = false
+preferences = false
+sale_of_data = "disabled"
+
+[extensions.settings]
+type = "object"
+
+[extensions.settings.fields.public_key]
+name = "public_key"
+description = "The store's public LAS key (site_pk_...)."
+type = "single_line_text_field"
+validations = [{ name = "min", value = "1" }]
+
+[extensions.settings.fields.api_base]
+name = "api_base"
+description = "Base URL of the LAS backend."
+type = "single_line_text_field"
+validations = [{ name = "min", value = "1" }]

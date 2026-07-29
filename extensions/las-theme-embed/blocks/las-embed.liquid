@@ -1,0 +1,149 @@
+{% comment %}
+  AMPER Live Assisted Sales - app embed block.
+
+  Three jobs, mirroring what the WordPress plugin does with PHP hooks:
+  1. Load the chat widget loader from las-backend (data-las-site = the store's PUBLIC
+     key - the secret write key never appears in a theme).
+  2. Keep first-party las_visitor_id / las_session_id cookies, and stamp them into the
+     cart attributes so the orders/create webhook can attribute the purchase back to
+     this browsing session (Shopify copies cart attributes onto the order).
+  3. For logged-in customers, fetch an HMAC-signed identity from the app proxy
+     (/apps/las/identity/) and publish window.LAS_CUSTOMER before the widget boots, so
+     the chat thread carries a proven identity instead of a typeable claim.
+
+  Configuration: the store key and API base arrive as app-owned metafields written by
+  las-backend on connect (write_store_metafields); the block settings exist as a manual
+  override/fallback so a support agent can always unblock a store from the theme editor.
+{% endcomment %}
+
+{%- liquid
+  assign las_site_key = block.settings.public_key
+  if las_site_key == blank
+    assign las_site_key = app.metafields.las.public_key
+  endif
+  assign las_api_base = block.settings.api_base
+  if las_api_base == blank
+    assign las_api_base = app.metafields.las.api_base
+  endif
+  if las_api_base == blank
+    assign las_api_base = 'https://live-assisted-sales.com'
+  endif
+-%}
+
+{%- if las_site_key != blank -%}
+<script>
+  (function () {
+    'use strict';
+    var COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+    var SESSION_GAP_MS = 30 * 60 * 1000;
+
+    function readCookie(name) {
+      var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : '';
+    }
+    function writeCookie(name, value, maxAge) {
+      document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+    }
+    function randomId(prefix) {
+      var bytes = new Uint8Array(16);
+      (window.crypto || window.msCrypto).getRandomValues(bytes);
+      return prefix + Array.prototype.map.call(bytes, function (b) {
+        return ('0' + b.toString(16)).slice(-2);
+      }).join('');
+    }
+
+    var visitorId = readCookie('las_visitor_id');
+    if (!visitorId) {
+      visitorId = randomId('v-');
+      writeCookie('las_visitor_id', visitorId, COOKIE_MAX_AGE);
+    }
+    // Session = visitor activity with no gap longer than 30 minutes (same window the
+    // console's abandonment logic uses). las_session_ts tracks the last activity.
+    var sessionId = readCookie('las_session_id');
+    var lastSeen = parseInt(readCookie('las_session_ts') || '0', 10);
+    if (!sessionId || !lastSeen || Date.now() - lastSeen > SESSION_GAP_MS) {
+      sessionId = randomId('s-');
+    }
+    writeCookie('las_session_id', sessionId, COOKIE_MAX_AGE);
+    writeCookie('las_session_ts', String(Date.now()), COOKIE_MAX_AGE);
+
+    // Purchase attribution: mirror the ids into the cart attributes so they surface as
+    // note_attributes on the order. Only when a cart exists and the value changed - an
+    // empty storefront visit must not create carts or spam the cart API.
+    fetch('/cart.js', { credentials: 'same-origin' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (cart) {
+        if (!cart || !cart.item_count) return;
+        var attrs = cart.attributes || {};
+        if (attrs.las_visitor_id === visitorId && attrs.las_session_id === sessionId) return;
+        return fetch('/cart/update.js', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attributes: { las_visitor_id: visitorId, las_session_id: sessionId } })
+        });
+      })
+      .catch(function () { /* attribution is best-effort; the sale still records */ });
+
+    {%- if customer %}
+    // Signed identity through the app proxy: Shopify appends logged_in_customer_id and a
+    // signature server-side, las-backend answers with claims signed by the store key.
+    var chatBoot = fetch('/apps/las/identity/', { credentials: 'same-origin' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (data && data.customer && data.customer.sig) {
+          window.LAS_CUSTOMER = {
+            external_id: data.customer.external_id,
+            email: data.customer.email,
+            exp: data.customer.exp,
+            sig: data.customer.sig
+          };
+        }
+      })
+      .catch(function () { /* anonymous chat still works */ });
+    {%- else %}
+    var chatBoot = Promise.resolve();
+    {%- endif %}
+
+    // Load the chat widget only after the identity settled, so the first WS handshake
+    // already carries the signed claims.
+    chatBoot.then(function () {
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = {{ las_api_base | append: '/widget/v1/chat.js' | json }};
+      script.setAttribute('data-las-site', {{ las_site_key | json }});
+      {%- if block.settings.accent_color != blank %}
+      script.setAttribute('data-las-accent', {{ block.settings.accent_color | json }});
+      {%- endif %}
+      document.body.appendChild(script);
+    });
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "AMPER Live Assisted Sales",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "public_key",
+      "label": "LAS store key",
+      "info": "Filled automatically when the store is connected. Only set this manually if support asks you to."
+    },
+    {
+      "type": "text",
+      "id": "api_base",
+      "label": "LAS server address",
+      "info": "Leave empty to use the default."
+    },
+    {
+      "type": "text",
+      "id": "accent_color",
+      "label": "Widget accent color",
+      "info": "Optional hex color, e.g. #2563eb. Leave empty to use the color from your LAS store settings."
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,35 @@
+# Deploy the app configuration + extensions to Shopify on every push to main that touches
+# them - the Shopify counterpart of the WordPress plugin's push-to-main release flow, with
+# one difference: server code (las-backend) deploys itself; this pipeline only ships the
+# extension layer, which Shopify versions and propagates to shops within minutes.
+#
+# Requires the SHOPIFY_CLI_PARTNERS_TOKEN secret: Partner Dashboard -> Settings ->
+# CLI token (an App Automation Token scoped to the app also works). Without the secret
+# the job fails fast and nothing is shipped.
+name: Deploy Shopify app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "extensions/**"
+      - "shopify.app.toml"
+
+concurrency:
+  group: shopify-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci || npm install
+      - name: Deploy app version
+        env:
+          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+        run: npx shopify app deploy --force --message "ci: ${{ github.sha }}"
