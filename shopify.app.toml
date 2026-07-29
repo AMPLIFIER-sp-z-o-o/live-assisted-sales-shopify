@@ -32,6 +32,14 @@ redirect_urls = ["https://live-assisted-sales.com/integrations/shopify/oauth/cal
 [webhooks]
 api_version = "2026-07"
 
+# App-specific (declarative) subscriptions: Shopify delivers these for EVERY shop that
+# has the app installed - no per-shop API registration involved. The per-shop
+# webhookSubscriptionCreate in las-backend stays as belt-and-braces; duplicate deliveries
+# dedupe on event_id at ingest.
+[[webhooks.subscriptions]]
+topics = ["orders/create", "app/uninstalled"]
+uri = "https://live-assisted-sales.com/api/integrations/shopify/webhooks/"
+
 # The three mandatory GDPR topics are configured here (not via the API); business topics
 # (orders/create, app/uninstalled) are registered per shop by las-backend on connect.
 [webhooks.privacy_compliance]
