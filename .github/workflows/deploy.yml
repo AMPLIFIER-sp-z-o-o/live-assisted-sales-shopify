@@ -32,4 +32,6 @@ jobs:
       - name: Deploy app version
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: npx shopify app deploy --force --message "ci: ${{ github.sha }}"
+        # No ": " inside this unquoted scalar - YAML would read it as a mapping and the
+        # whole workflow file becomes invalid (runs then fail with zero jobs).
+        run: npx shopify app deploy --force --message "ci ${{ github.sha }}"
