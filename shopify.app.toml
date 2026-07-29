@@ -20,7 +20,11 @@ application_url = "https://live-assisted-sales.com/integrations/shopify/install/
 embedded = false
 
 [access_scopes]
-scopes = "read_orders"
+# read_orders: orders/create webhook (purchase events). write_pixels: activate the Web
+# Pixel on connect (webPixelCreate). read_customers: e-mail for signed chat identity via
+# the app proxy (works without approval on dev stores; real merchant stores need
+# protected-customer-data access granted in the Partner Dashboard).
+scopes = "read_orders,write_pixels,read_customers"
 
 [auth]
 redirect_urls = ["https://live-assisted-sales.com/integrations/shopify/oauth/callback/"]
