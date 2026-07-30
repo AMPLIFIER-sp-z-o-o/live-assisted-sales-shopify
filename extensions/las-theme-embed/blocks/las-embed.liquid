@@ -1,13 +1,21 @@
 {% comment %}
   AMPER Live Assisted Sales - app embed block.
 
-  Three jobs, mirroring what the WordPress plugin does with PHP hooks:
+  Four jobs, mirroring what the WordPress plugin does with PHP hooks:
   1. Load the chat widget loader from las-backend (data-las-site = the store's PUBLIC
      key - the secret write key never appears in a theme).
   2. Keep first-party las_visitor_id / las_session_id cookies, and stamp them into the
      cart attributes so the orders/create webhook can attribute the purchase back to
      this browsing session (Shopify copies cart attributes onto the order).
-  3. For logged-in customers, fetch an HMAC-signed identity from the app proxy
+  3. Track the storefront funnel FIRST-PARTY: events POST to /apps/las/track on the
+     shop's own domain (Shopify App Proxy -> las-backend), which ad blockers cannot
+     distinguish from the shop itself - the Web Pixel path dies with Shopify's
+     web-pixels loader on every EasyPrivacy-class blocklist. The pixel watches the
+     las_fp_ts heartbeat cookie and stays silent while the embed is alive, so the two
+     sources never double-report; on password-protected storefronts (every development
+     store) Shopify does not forward proxy requests and the tracker falls back to the
+     direct widget endpoint.
+  4. For logged-in customers, fetch an HMAC-signed identity from the app proxy
      (/apps/las/identity/) and publish window.LAS_CUSTOMER before the widget boots, so
      the chat thread carries a proven identity instead of a typeable claim.
 
@@ -67,16 +75,225 @@
     writeCookie('las_session_id', sessionId, COOKIE_MAX_AGE);
     writeCookie('las_session_ts', String(Date.now()), COOKIE_MAX_AGE);
 
+    // First-party tracker heartbeat: the Web Pixel reads this cookie and stays silent on
+    // storefront events while the embed is alive, so the two sources never double-report.
+    // Short-lived on purpose - if the merchant disables the embed, the pixel takes over
+    // on the next page load.
+    writeCookie('las_fp_ts', String(Date.now()), 120);
+
+    // ---- First-party funnel tracker ------------------------------------------------
+    var PROXY_TRACK_URL = '/apps/las/track';
+    var DIRECT_TRACK_URL = {{ las_api_base | append: '/api/widget/v1/pixel-events/' | json }};
+    var CURRENCY = {{ cart.currency.iso_code | json }};
+    var FLUSH_DELAY_MS = 400;
+    var queue = [];
+    var flushTimer = null;
+    var proxyBroken = false;
+    try { proxyBroken = sessionStorage.getItem('las_fp_direct') === '1'; } catch (e) { /* storage may be blocked */ }
+
+    function analyticsAllowed() {
+      // Honor Shopify's consent API when the theme loaded it - the Web Pixel is gated
+      // the same way by its customer_privacy settings, and this path must not be the
+      // loophole around a declined banner.
+      try {
+        var cp = window.Shopify && window.Shopify.customerPrivacy;
+        if (cp && typeof cp.analyticsProcessingAllowed === 'function') {
+          return cp.analyticsProcessingAllowed() !== false;
+        }
+      } catch (e) { /* no consent API on this theme */ }
+      return true;
+    }
+
+    function post(url, body) {
+      fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: body })
+        .catch(function () { /* telemetry is best-effort */ });
+    }
+
+    function deliver(body) {
+      if (proxyBroken) {
+        post(DIRECT_TRACK_URL, body);
+        return;
+      }
+      fetch(PROXY_TRACK_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: body
+      }).then(function (response) {
+        // 403/429 are real backend answers (store off / throttled) - do not fall back.
+        // A 404 is Shopify itself refusing to forward the proxy (password-protected
+        // storefronts); remember it for the session and go direct from now on.
+        if (response.ok || response.status === 403 || response.status === 429) return;
+        proxyBroken = true;
+        try { sessionStorage.setItem('las_fp_direct', '1'); } catch (e) { /* best-effort */ }
+        post(DIRECT_TRACK_URL, body);
+      }).catch(function () {
+        post(DIRECT_TRACK_URL, body);
+      });
+    }
+
+    function flushEvents() {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      if (!queue.length) return;
+      var events = queue.splice(0, 20);
+      deliver(JSON.stringify({ public_key: {{ las_site_key | json }}, events: events }));
+      if (queue.length) flushEvents();
+    }
+
+    function track(eventType, fields, eventId) {
+      if (!analyticsAllowed()) return;
+      var event = {
+        event_type: eventType,
+        event_id: eventId || randomId('fp-'),
+        visitor_id: visitorId,
+        session_id: sessionId,
+        occurred_at: new Date().toISOString(),
+        url: window.location.href,
+        page: { title: document.title || '' },
+        metadata: { source: 'shopify_embed', user_agent: navigator.userAgent || '' }
+      };
+      for (var key in fields) {
+        if (fields[key] != null) event[key] = fields[key];
+      }
+      queue.push(event);
+      if (!flushTimer) flushTimer = setTimeout(flushEvents, FLUSH_DELAY_MS);
+    }
+    window.addEventListener('pagehide', flushEvents);
+
+    function itemName(item) {
+      var name = item.product_title || item.title || '';
+      if (item.variant_title) name += ' - ' + item.variant_title;
+      return name;
+    }
+
+    function productFromItem(item) {
+      return {
+        id: String(item.product_id || ''),
+        sku: item.sku ? String(item.sku) : '',
+        name: itemName(item),
+        url: item.url || '',
+        price: item.price != null ? (item.price / 100).toFixed(2) : '',
+        currency: CURRENCY
+      };
+    }
+
+    function lasCartPayload(cart) {
+      var items = (cart && cart.items) || [];
+      return {
+        items_count: (cart && cart.item_count) || 0,
+        total: cart && cart.total_price != null ? (cart.total_price / 100).toFixed(2) : '',
+        currency: (cart && cart.currency) || CURRENCY,
+        items: items.map(function (item) {
+          return {
+            product_id: String(item.product_id || ''),
+            name: itemName(item),
+            sku: item.sku ? String(item.sku) : '',
+            quantity: item.quantity || 0,
+            price: item.price != null ? (item.price / 100).toFixed(2) : '',
+            currency: (cart && cart.currency) || CURRENCY
+          };
+        })
+      };
+    }
+
+    // Cart mutations: diff the cart the theme's own AJAX calls return, so one shopper
+    // action becomes one add_to_cart / remove_from_cart - the same grain the pixel
+    // reports. Fetch-based themes only (Dawn and every current OS 2.0 theme); an XHR
+    // theme simply leaves cart events to the pixel.
+    var cartState = null;
+    function snapshotCart(cart) {
+      var state = {};
+      ((cart && cart.items) || []).forEach(function (item) {
+        state[item.key] = { quantity: item.quantity || 0, item: item };
+      });
+      cartState = state;
+    }
+    function diffCart(cart) {
+      if (!cartState) {
+        snapshotCart(cart);
+        return;
+      }
+      var previous = cartState;
+      snapshotCart(cart);
+      var seen = {};
+      ((cart && cart.items) || []).forEach(function (item) {
+        seen[item.key] = true;
+        var before = previous[item.key] ? previous[item.key].quantity : 0;
+        var delta = (item.quantity || 0) - before;
+        if (delta > 0) track('add_to_cart', { product: productFromItem(item) });
+        if (delta < 0) track('remove_from_cart', { product: productFromItem(item) });
+      });
+      Object.keys(previous).forEach(function (key) {
+        if (!seen[key]) track('remove_from_cart', { product: productFromItem(previous[key].item) });
+      });
+    }
+
+    var CART_MUTATION = /\/cart\/(add|change|update|clear)(\.js)?(\?|$)/;
+    var nativeFetch = window.fetch;
+    if (nativeFetch) {
+      window.fetch = function (input) {
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        var result = nativeFetch.apply(this, arguments);
+        if (CART_MUTATION.test(url)) {
+          result.then(function (response) {
+            if (!response.ok) return;
+            // add.js answers with the added line(s), not the cart - refetch to diff, so
+            // a quantity merging onto an existing line still counts exactly once.
+            nativeFetch('/cart.js', { credentials: 'same-origin' })
+              .then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (cart) { if (cart) diffCart(cart); })
+              .catch(function () { /* cart events are best-effort */ });
+          }).catch(function () { /* the theme handles its own failures */ });
+        }
+        return result;
+      };
+    }
+
+    // Exactly one session_start per session across the embed AND the pixel: both stamp
+    // the session-scoped id, so the backend keeps whichever lands first.
+    track('session_start', {}, 'px-session-' + sessionId);
+
+    {%- if template.name == 'product' and product %}
+    {%- assign las_variant = product.selected_or_first_available_variant %}
+    track('view_item', {
+      product: {
+        id: {{ product.id | append: '' | json }},
+        sku: {{ las_variant.sku | default: '' | json }},
+        name: {{ product.title | append: ' - ' | append: las_variant.title | json }},
+        url: {{ product.url | json }},
+        price: {{ las_variant.price | divided_by: 100.0 | append: '' | json }},
+        currency: CURRENCY
+      }
+    });
+    {%- elsif template.name == 'collection' and collection %}
+    track('view_item_list', {
+      category: { id: {{ collection.id | append: '' | json }}, name: {{ collection.title | json }} }
+    });
+    {%- elsif template.name == 'search' and search.performed %}
+    track('search', {
+      search: { query: {{ search.terms | json }}, results_count: {{ search.results_count | default: 0 | json }} }
+    });
+    {%- elsif template.name == 'cart' %}
+    track('view_cart', { cart: lasCartPayload({{ cart | json }}) });
+    {%- endif %}
+
     // Purchase attribution: mirror the ids into the cart attributes so they surface as
     // note_attributes on the order. Only when a cart exists and the value changed - an
-    // empty storefront visit must not create carts or spam the cart API.
-    fetch('/cart.js', { credentials: 'same-origin' })
+    // empty storefront visit must not create carts or spam the cart API. The same fetch
+    // seeds the tracker's cart state for the add/remove diff.
+    nativeFetch('/cart.js', { credentials: 'same-origin' })
       .then(function (response) { return response.ok ? response.json() : null; })
       .then(function (cart) {
-        if (!cart || !cart.item_count) return;
+        if (!cart) return;
+        snapshotCart(cart);
+        if (!cart.item_count) return;
         var attrs = cart.attributes || {};
         if (attrs.las_visitor_id === visitorId && attrs.las_session_id === sessionId) return;
-        return fetch('/cart/update.js', {
+        return nativeFetch('/cart/update.js', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },

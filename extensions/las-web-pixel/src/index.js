@@ -10,6 +10,14 @@
 // Identity: the theme embed owns the las_visitor_id / las_session_id cookies; the pixel
 // reads them through the sandbox cookie API so both surfaces tell one story. On pages
 // where the embed never ran (e.g. a direct checkout link) the pixel mints its own.
+//
+// Division of labour with the theme embed: the embed tracks the storefront first-party
+// through the app proxy (ad-blocker-proof) and refreshes the las_fp_ts heartbeat cookie
+// on every page load. While that heartbeat is fresh the pixel suppresses its storefront
+// events - otherwise every view would land twice. The pixel still owns checkout pages
+// (where theme code cannot run) and every store whose merchant never enabled the embed,
+// and checkout_started carries the deterministic bc-{token} id so the checkouts/create
+// webhook collapses into it instead of double-counting.
 
 import { register } from "@shopify/web-pixels-extension";
 
@@ -24,6 +32,14 @@ register(({ analytics, browser, settings }) => {
   const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
   const FLUSH_INTERVAL_MS = 5000;
   const MAX_BATCH = 20;
+  // The embed rewrites las_fp_ts on every page load with a 120s max-age; 90s of slack
+  // keeps one long-lived storefront tab from flapping between the two sources.
+  const EMBED_FRESH_MS = 90 * 1000;
+
+  async function embedActive() {
+    const stamp = parseInt((await browser.cookie.get("las_fp_ts")) || "0", 10);
+    return Boolean(stamp) && Date.now() - stamp < EMBED_FRESH_MS;
+  }
 
   let queue = [];
   let flushTimer = null;
@@ -73,7 +89,12 @@ register(({ analytics, browser, settings }) => {
     }
   }
 
-  async function emit(eventType, event, fields) {
+  async function emit(eventType, event, fields, { storefront = true } = {}) {
+    // Storefront events belong to the embed's first-party tracker whenever it is alive;
+    // checkout events always pass (the embed cannot run on checkout pages).
+    if (storefront && (await embedActive())) {
+      return;
+    }
     const { visitorId, sessionId } = await ids();
     const context = event.context || {};
     const page = context.document || {};
@@ -182,13 +203,19 @@ register(({ analytics, browser, settings }) => {
   analytics.subscribe("checkout_started", (event) => {
     const checkout = (event.data && event.data.checkout) || {};
     const total = checkout.totalPrice || {};
-    emit("begin_checkout", event, {
+    const fields = {
       cart: {
         items_count: (checkout.lineItems || []).reduce((sum, item) => sum + (item.quantity || 0), 0),
         total: total.amount != null ? String(total.amount) : "",
         currency: total.currencyCode || "",
       },
-    });
+    };
+    if (checkout.token) {
+      // Same deterministic id the checkouts/create webhook stamps - whichever source
+      // reports this checkout first wins, the other collapses as a duplicate.
+      fields.event_id = `bc-${checkout.token}`;
+    }
+    emit("begin_checkout", event, fields, { storefront: false });
   });
 
   analytics.subscribe("page_viewed", (event) => {

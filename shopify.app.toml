@@ -20,11 +20,12 @@ application_url = "https://live-assisted-sales.com/integrations/shopify/install/
 embedded = false
 
 [access_scopes]
-# read_orders: orders/create webhook (purchase events). write_pixels: activate the Web
-# Pixel on connect (webPixelCreate). read_customers: e-mail for signed chat identity via
-# the app proxy (works without approval on dev stores; real merchant stores need
+# read_orders: orders/create webhook (purchase events). read_checkouts: checkouts/create
+# webhook (ad-blocker-proof begin_checkout). write_pixels: activate the Web Pixel on
+# connect (webPixelCreate). read_customers: e-mail for signed chat identity via the app
+# proxy (works without approval on dev stores; real merchant stores need
 # protected-customer-data access granted in the Partner Dashboard).
-scopes = "read_orders,write_pixels,read_customers,read_customer_events"
+scopes = "read_orders,read_checkouts,write_pixels,read_customers,read_customer_events"
 
 [auth]
 redirect_urls = ["https://live-assisted-sales.com/integrations/shopify/oauth/callback/"]
@@ -37,7 +38,7 @@ api_version = "2026-07"
 # webhookSubscriptionCreate in las-backend stays as belt-and-braces; duplicate deliveries
 # dedupe on event_id at ingest.
 [[webhooks.subscriptions]]
-topics = ["orders/create", "app/uninstalled"]
+topics = ["orders/create", "checkouts/create", "app/uninstalled"]
 uri = "https://live-assisted-sales.com/api/integrations/shopify/webhooks/"
 
 # The three mandatory GDPR topics are configured here (not via the API); business topics
