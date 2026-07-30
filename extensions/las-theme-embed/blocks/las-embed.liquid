@@ -162,7 +162,17 @@
       queue.push(event);
       if (!flushTimer) flushTimer = setTimeout(flushEvents, FLUSH_DELAY_MS);
     }
-    window.addEventListener('pagehide', flushEvents);
+    // Same contract as the WordPress tracker: session_end fires on EVERY pagehide (in-site
+    // navigation included) and the console's short grace window decides whether the shopper
+    // truly left - this is what clears the live-activity row when the tab closes.
+    var sessionEnded = false;
+    window.addEventListener('pagehide', function () {
+      if (!sessionEnded) {
+        sessionEnded = true;
+        track('session_end', {});
+      }
+      flushEvents();
+    });
 
     function itemName(item) {
       var name = item.product_title || item.title || '';
