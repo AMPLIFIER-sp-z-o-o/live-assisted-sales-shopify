@@ -263,9 +263,37 @@
       };
     }
 
-    // Exactly one session_start per session across the embed AND the pixel: both stamp
-    // the session-scoped id, so the backend keeps whichever lands first.
-    track('session_start', {}, 'px-session-' + sessionId);
+    // A fresh session_start on EVERY page load, exactly like the WordPress/b2c/b2b
+    // trackers. It must NOT be deduplicated by a session-scoped id: after a closed tab
+    // (session_end) the shopper who comes back within the session window would otherwise
+    // produce no new event on a plain page, and the live-activity row would never
+    // reappear. The pixel keeps its own session-scoped id, but it only speaks where the
+    // embed does not (checkout, embed disabled), so the two never double-start a session
+    // in the console feed.
+    track('session_start', {});
+
+    // Engaged-time heartbeat, same contract as the WordPress tracker: a page_ping every
+    // PING_INTERVAL_MS, but only while the tab is visible AND the shopper did something
+    // in the interval. Keeps a long reader's row alive and feeds the intent engine;
+    // ingest hides page_ping from the console history, so this never floods the feed.
+    var PING_INTERVAL_MS = 15000;
+    var activeSinceLastPing = false;
+    var engagedMs = 0;
+    ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(function (type) {
+      window.addEventListener(type, function () { activeSinceLastPing = true; }, { passive: true });
+    });
+    setInterval(function () {
+      if (document.visibilityState !== 'visible' || !activeSinceLastPing) return;
+      engagedMs += PING_INTERVAL_MS;
+      activeSinceLastPing = false;
+      track('page_ping', {
+        metadata: {
+          source: 'shopify_embed',
+          user_agent: navigator.userAgent || '',
+          engaged_ms: engagedMs
+        }
+      });
+    }, PING_INTERVAL_MS);
 
     {%- if template.name == 'product' and product %}
     {%- assign las_variant = product.selected_or_first_available_variant %}
