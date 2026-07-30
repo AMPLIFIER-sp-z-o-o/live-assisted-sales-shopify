@@ -173,6 +173,15 @@
       }
       flushEvents();
     });
+    // Back/forward cache: the browser restores the page WITHOUT re-running scripts, so
+    // the latch above would swallow the next real departure and the shopper's return
+    // would go unnoticed until the first heartbeat. A persisted pageshow re-arms the
+    // latch and announces the return immediately.
+    window.addEventListener('pageshow', function (event) {
+      if (!event.persisted) return;
+      sessionEnded = false;
+      track('session_start', {});
+    });
 
     function itemName(item) {
       var name = item.product_title || item.title || '';
