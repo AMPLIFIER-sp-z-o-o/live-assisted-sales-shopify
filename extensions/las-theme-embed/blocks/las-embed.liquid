@@ -60,6 +60,22 @@
       }).join('');
     }
 
+    // Bind the persisted visitor id to the account it tracks ('' while anonymous). The id
+    // rotates ONLY when a different person shows up on this browser: an anonymous shopper
+    // logging in keeps the ids (their pre-login history continues under the account), while
+    // logout or an account switch starts a fresh visitor, so two customers never mix under
+    // one visitor id in the activity feed or chat.
+    var identityOwner = {% if customer %}'{{ customer.id }}'{% else %}''{% endif %};
+    var storedOwner = readCookie('las_identity_owner');
+    if (storedOwner !== identityOwner) {
+      if (storedOwner) {
+        writeCookie('las_visitor_id', '', 0);
+        writeCookie('las_session_id', '', 0);
+        writeCookie('las_session_ts', '', 0);
+      }
+      writeCookie('las_identity_owner', identityOwner, COOKIE_MAX_AGE);
+    }
+
     var visitorId = readCookie('las_visitor_id');
     if (!visitorId) {
       visitorId = randomId('v-');
