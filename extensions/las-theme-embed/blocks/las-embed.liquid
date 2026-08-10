@@ -398,8 +398,10 @@
     var chatBoot = Promise.resolve();
     {%- endif %}
 
+    {%- if block.settings.show_chat -%}
     // Load the chat widget only after the identity settled, so the first WS handshake
-    // already carries the signed claims.
+    // already carries the signed claims. Guarded by the "Show the chat bubble" setting:
+    // unticking it hides only the chat - the funnel tracker above keeps running.
     chatBoot.then(function () {
       var script = document.createElement('script');
       script.async = true;
@@ -410,6 +412,9 @@
       {%- endif %}
       document.body.appendChild(script);
     });
+    {%- else -%}
+    void chatBoot; // chat disabled in the app embed settings; tracking stays on
+    {%- endif -%}
   })();
 </script>
 {%- endif -%}
@@ -419,6 +424,13 @@
   "name": "AMPER Live Assisted Sales",
   "target": "body",
   "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_chat",
+      "label": "Show the chat bubble",
+      "default": true,
+      "info": "Untick to hide only the chat - visitor tracking and the live console keep working."
+    },
     {
       "type": "text",
       "id": "public_key",
