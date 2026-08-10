@@ -26,7 +26,7 @@ A merchant installs the app (OAuth) and confirms on the LAS console login wall, 
 
 Event sources are split by what each transport is good at, and duplicates collapse on deterministic `event_id`s at ingest:
 
-- **Theme embed** (`extensions/las-theme-embed`) - chat widget loader, first-party `las_visitor_id`/`las_session_id` cookies, cart-attribute purchase attribution, signed customer identity, and the first-party funnel tracker posting through the App Proxy. Honours Shopify's Customer Privacy consent API.
+- **Theme embed** (`extensions/las-theme-embed`) - chat widget loader, first-party `las_visitor_id`/`las_session_id` cookies, cart-attribute purchase attribution, signed customer identity, and the first-party funnel tracker posting through the App Proxy. Honours Shopify's Customer Privacy consent API. The embed's "Show the chat bubble" setting (default on) hides only the widget loader - tracking keeps running.
 - **Web Pixel** (`extensions/las-web-pixel`) - browser funnel in Shopify's strict sandbox; the only source that runs on checkout pages and on stores where the embed is off. Watches the embed's `las_fp_ts` heartbeat cookie and stays silent while the embed is alive, so the two never double-report.
 - **Webhooks** - `orders/create` is the ONLY source of purchases (ad-blocker-proof, non-forgeable), `checkouts/create` backs up begin_checkout (same `bc-{token}` event_id as the pixel's checkout_started, so whichever arrives first wins), `app/uninstalled` flips the store's kill switch (history stays; reconnect restores).
 

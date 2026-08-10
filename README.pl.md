@@ -41,6 +41,9 @@ Nie. Nowe wersje dystrybuuje Shopify automatycznie - w panelu sklepu niczego nie
 **Jak wstrzymać wysyłanie danych?**
 Na stronie ustawień sklepu w konsoli odznacz **Integracja włączona**. Odinstalowanie aplikacji w panelu Shopify (**Ustawienia → Aplikacje i kanały sprzedaży**) także zatrzymuje wszystko - historia zostaje w konsoli, a ponowne połączenie sklepu włącza integrację z powrotem.
 
+**Czy mogę ukryć sam dymek czatu?**
+Tak. W edytorze motywu (**Sklep online → Szablony → Dostosuj → Osadzenia aplikacji → AMPER Live Assisted Sales**) odznacz **Show the chat bubble** - dymek zniknie, a śledzenie odwiedzających i konsola na żywo będą dalej działać.
+
 **Co z danymi moich klientów?**
 Integracja respektuje ustawienia zgód na pliki cookie w Twoim sklepie Shopify (Customer Privacy) - bez zgody na analitykę żadne dane o zachowaniu nie są zbierane w przeglądarce. Szczegółowe informacje znajdziesz w naszym [Regulaminie](https://live-assisted-sales.com/terms/) oraz [Polityce prywatności](https://live-assisted-sales.com/privacy/).
 

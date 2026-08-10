@@ -41,6 +41,9 @@ No. New versions are distributed by Shopify automatically - there is nothing to 
 **How do I pause sending data?**
 On your store's settings page in the console, untick **Integration enabled**. Uninstalling the app in your Shopify admin (**Settings → Apps and sales channels**) also stops everything - your history stays in the console, and reconnecting the store switches the integration back on.
 
+**Can I hide only the chat bubble?**
+Yes. In the theme editor (**Online Store → Themes → Customize → App embeds → AMPER Live Assisted Sales**), untick **Show the chat bubble** - the bubble disappears, while visitor tracking and the live console keep working.
+
 **What about my customers' data?**
 The integration honours your store's Shopify cookie-consent (Customer Privacy) settings - without analytics consent, no behavioural data is collected in the browser. For details, see our [Terms of Service](https://live-assisted-sales.com/terms/) and [Privacy Policy](https://live-assisted-sales.com/privacy/).
 
