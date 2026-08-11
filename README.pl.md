@@ -23,10 +23,15 @@ Niczego nie trzeba pobierać - aplikację instalujesz bezpośrednio z konta AMPE
 
 1. Zaloguj się (lub załóż konto) na [live-assisted-sales.com](https://live-assisted-sales.com).
 2. W konsoli otwórz **Moje sklepy** i kliknij **Dodaj sklep**. W rozwiniętym formularzu znajdź sekcję **Masz sklep na Shopify?**, wpisz adres swojego sklepu (np. `twoj-sklep.myshopify.com`) i kliknij **Połącz przez Shopify**.
+
+   ![Konsola AMPER LAS: rozwinięty formularz "Dodaj sklep" z sekcją "Masz sklep na Shopify?"](docs/install/las-add-store-shopify.png)
+
 3. Shopify otworzy panel administracyjny Twojego sklepu i poprosi o zatwierdzenie instalacji aplikacji. Przejrzyj uprawnienia i kliknij **Zainstaluj**.
 4. Wrócisz na live-assisted-sales.com. Potwierdź przyciskiem **Połącz ten sklep** - klucze API, webhooki zamówień i piksel analityczny skonfigurują się automatycznie, niczego nie kopiujesz ani nie wklejasz.
 5. Ostatni przełącznik: na stronie potwierdzenia kliknij **Otwórz edytor szablonu** (albo wejdź w **Sklep online → Szablony → Dostosuj** w panelu Shopify), otwórz panel **Elementy aplikacji** (App embeds), włącz **AMPER Live Assisted Sales** i zapisz szablon.
 6. Gotowe. Dymek czatu pojawia się w sklepie, a w konsoli na live-assisted-sales.com widzisz ruch w czasie rzeczywistym. Zamówienia zapisują się automatycznie, nawet u odwiedzających z blokerami reklam.
+
+   ![Sklep Shopify z działającym widgetem czatu AMPER Live Assisted Sales](docs/install/shopify-storefront-chat.png)
 
 Instalację możesz też zacząć bezpośrednim odnośnikiem: `https://live-assisted-sales.com/integrations/shopify/install/?shop=twoj-sklep.myshopify.com` (podmień adres na własny).
 
