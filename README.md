@@ -24,7 +24,7 @@ There is nothing to download - the app installs straight from your AMPER LAS acc
 1. Sign in (or create an account) at [live-assisted-sales.com](https://live-assisted-sales.com).
 2. In the console open **My stores** and click **Add store**. In the form that unfolds, find the row **Is your store on Shopify?**, enter your store address (for example `your-store.myshopify.com`) and click **Connect via Shopify**.
 
-   ![AMPER LAS console: the unfolded "Add store" form with the Shopify row (Polish console shown; the layout is identical in every language)](docs/install/las-add-store-shopify.png)
+   ![AMPER LAS console: the unfolded "Add store" form with the Shopify row](docs/install/las-add-store-shopify-en.png)
 
 3. Shopify opens your store's admin and asks you to approve the app installation. Review the permissions and click **Install**.
 4. You will be brought back to live-assisted-sales.com. Confirm with **Connect this store** - the API keys, order webhooks and the analytics pixel are all set up automatically, nothing to copy or paste.
