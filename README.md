@@ -29,6 +29,9 @@ There is nothing to download - the app installs straight from your AMPER LAS acc
 3. Shopify opens your store's admin and asks you to approve the app installation. Review the permissions and click **Install**.
 4. You will be brought back to live-assisted-sales.com. Confirm with **Connect this store** - the API keys, order webhooks and the analytics pixel are all set up automatically, nothing to copy or paste.
 5. One last switch: click **Open the theme editor** on the confirmation page (or go to **Online Store → Themes → Customize** in your Shopify admin), open the **App embeds** panel, switch on **AMPER Live Assisted Sales** and save the theme.
+
+   ![Shopify theme editor with the App embeds panel open and the AMPER Live Assisted Sales toggle switched on](docs/install/shopify-app-embeds-en.png)
+
 6. Done. The chat bubble appears in your store, and the console at live-assisted-sales.com shows your traffic in real time. Orders are recorded automatically, even for visitors with ad blockers.
 
    ![A Shopify storefront with the AMPER Live Assisted Sales chat widget running](docs/install/shopify-storefront-chat.png)
