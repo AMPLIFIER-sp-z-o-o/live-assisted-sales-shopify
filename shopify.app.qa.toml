@@ -10,7 +10,10 @@ application_url = "https://qa.live-assisted-sales.com/integrations/shopify/insta
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,read_checkouts,write_pixels,read_customers,read_customer_events"
+# read_products: the agent's chat product search asks the Admin API for the shop's whole
+# catalogue, so an agent can send a product nobody has viewed yet. Shops installed before this
+# scope existed keep working - their picker falls back until the merchant re-authorises.
+scopes = "read_orders,read_checkouts,write_pixels,read_customers,read_customer_events,read_products"
 
 [auth]
 redirect_urls = ["https://qa.live-assisted-sales.com/integrations/shopify/oauth/callback/"]
